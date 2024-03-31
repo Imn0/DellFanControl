@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="DellFanLibInterop">
+      <HintPath>./DellFanLibInterop/DellFanLibInterop.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+  <Content Include="./DellFanLibInterop\bzh_dell_smm_io_x64.sys">
+  <Link>bzh_dell_smm_io_x64.sys</Link>
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </Content>
+</ItemGroup>
+<ItemGroup>
+  <Content Include="./DellFanLibInterop/DellFanLib.dll">
+  <Link>DellFanLib.dll</Link>
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </Content>
+</ItemGroup>
+
+
+</Project>
