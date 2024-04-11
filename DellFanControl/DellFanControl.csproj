@@ -25,6 +25,12 @@
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
   </Content>
 </ItemGroup>
+<ItemGroup>
+  <Content Include="./Poorly-drawn-fan.ico">
+  <Link>Poorly-drawn-fan.ico</Link>
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </Content>
+</ItemGroup>
 
 
 </Project>

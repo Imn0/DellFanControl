@@ -35,7 +35,7 @@ static class DellFanControl
     [STAThread]
     static void Main()
     {
-
+        try{
         DellFanLib.Initialize();
 
         SetOff();
@@ -77,7 +77,11 @@ static class DellFanControl
                 Application.Exit();
             }
         };
-        Application.Run();
+            Application.Run();
+        }catch (Exception ex)
+    {
+        File.WriteAllText("error.log", ex.ToString());
+    }
     }
     public delegate void VoidFunction();
     static void AddItem(ContextMenuStrip contextMenu, List<ToolStripMenuItem> menuItems, String name, VoidFunction fanSetting, bool ticked=false)
