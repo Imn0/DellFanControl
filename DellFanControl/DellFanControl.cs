@@ -1,12 +1,10 @@
 namespace DellFanControl;
 
 using System;
-using System.Diagnostics;
 using System.Windows.Forms;
 using DellFanManagement.Interop;
-using Microsoft.VisualBasic.ApplicationServices;
 
-static class Program
+static class DellFanControl
 {
 
     static void SetOff()
@@ -37,6 +35,7 @@ static class Program
     [STAThread]
     static void Main()
     {
+
         DellFanLib.Initialize();
 
         SetOff();
@@ -44,22 +43,24 @@ static class Program
 
         NotifyIcon notifyIcon = new()
         {
-            Icon = SystemIcons.Application,
-            Text = "My Application",
+            Icon = new Icon("./Poorly-drawn-fan.ico"),
+            Text = "Dell Fan Control",
             Visible = true
         };
+        ContextMenuStrip contextMenu = new();
+        List<ToolStripMenuItem> menuItems = [];
 
-        // Create a context menu and add items
-        ContextMenuStrip contextMenu = new ContextMenuStrip();
-        contextMenu.Items.Add("OFF", null, (sender, args) => { SetOff(); });
-        contextMenu.Items.Add("One Slow", null, (sender, args) => { SetOneSlow(); });
-        contextMenu.Items.Add("Slow", null, (sender, args) => { SetSlow(); });
-        contextMenu.Items.Add("Fast", null, (sender, args) => { SetFull(); });
+        AddItem(contextMenu, menuItems, "Off", SetOff, ticked: true);
+        AddItem(contextMenu, menuItems, "One slow", SetOneSlow);
+        AddItem(contextMenu, menuItems, "Slow", SetSlow);
+        AddItem(contextMenu, menuItems, "Full", SetFull);
 
-        // Assign the context menu to the notify icon
+
+        contextMenu.Items.Add(new ToolStripSeparator());
+        contextMenu.Items.Add("EXIT", null, (sender, args) => { Application.Exit(); });
+
         notifyIcon.ContextMenuStrip = contextMenu;
 
-        // Existing mouse click event handler...
         notifyIcon.MouseClick += (sender, args) =>
         {
             if (args.Button == MouseButtons.Left)
@@ -71,11 +72,38 @@ static class Program
         };
         notifyIcon.MouseDoubleClick += (sender, args) =>
         {
-            if (args.Button == MouseButtons.Left)
+            if (args.Button == MouseButtons.Right)
             {
                 Application.Exit();
             }
         };
         Application.Run();
     }
+    public delegate void VoidFunction();
+    static void AddItem(ContextMenuStrip contextMenu, List<ToolStripMenuItem> menuItems, String name, VoidFunction fanSetting, bool ticked=false)
+    {
+
+        ToolStripMenuItem fullItem = new(name, null, (sender, args) => { fanSetting(); })
+        {
+            CheckOnClick = true,
+            Checked = ticked
+        };
+        fullItem.CheckStateChanged += (sender, args) =>
+        {
+            if (fullItem.Checked)
+            {
+                foreach (var item in menuItems)
+                {
+                    if (item != fullItem)
+                    {
+                        item.Checked = false;
+                    }
+                }
+            }
+        };
+        menuItems.Add(fullItem);
+        contextMenu.Items.Add(fullItem);
+
+    }
+
 }
