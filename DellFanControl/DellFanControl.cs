@@ -1,74 +1,122 @@
 namespace DellFanControl;
 
 using System;
+using System.Management;
 using System.Timers;
 using System.Windows.Forms;
 using DellFanManagement.Interop;
 using Microsoft.Win32;
 
-enum FanState
+enum AppState
 {
+    AUTO,
     OFF,
     ONE_SLOW,
     SLOW,
     FAST,
 }
 
+static class AppStateActions
+{
+    public static void Act(this AppState state)
+    {
+        switch (state)
+        {
+            case AppState.OFF:
+                DellFanControl.SetOff();
+                break;
+            case AppState.ONE_SLOW:
+                DellFanControl.SetOneSlow();
+                break;
+            case AppState.SLOW:
+                DellFanControl.SetSlow();
+                break;
+            case AppState.FAST:
+                DellFanControl.SetFast();
+                break;
+            case AppState.AUTO:
+                DellFanControl.Auto();
+                break;
+        }
+    }
+}
+
 static class DellFanControl
 {
 
-    private static FanState currentFanState = FanState.OFF;
+    private static AppState currentAppState = AppState.AUTO;
     private static System.Timers.Timer? aTimer;
 
-    static void SetOff()
+    public static void Auto()
     {
-        currentFanState = FanState.OFF;
+
+        AppState desiredFanSpeed = AppState.OFF;
+        
+        var Charging_status = SystemInformation.PowerStatus.BatteryChargeStatus & BatteryChargeStatus.Charging;
+        if (SystemInformation.PowerStatus.PowerLineStatus == PowerLineStatus.Online && Charging_status == BatteryChargeStatus.Charging)
+        {
+            // pluged in and charging 
+            desiredFanSpeed = AppState.SLOW;
+        }
+        else if (SystemInformation.PowerStatus.PowerLineStatus == PowerLineStatus.Online)
+        {
+            // pluged in and NOT charging 
+            desiredFanSpeed = AppState.ONE_SLOW;
+        }
+
+
+        // check monitor count
+        int monitorCount = 1;
+
+        try
+        {
+            using (var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_PnPEntity WHERE (PNPClass = 'Monitor')"))
+            {
+                var monitors = searcher.Get();
+                monitorCount = monitors.Count;
+               
+            }
+        }
+        catch (Exception ex)
+        {
+            File.WriteAllText("error.log", $"An error occurred: {ex.Message}");
+        }
+        
+        if(monitorCount > 1){
+            desiredFanSpeed = AppState.SLOW;
+        }
+        
+        
+        // check cpu temp 
+        // TODO
+
+
+        desiredFanSpeed.Act();
+    }
+
+    public static void SetOff()
+    {
         DellFanLib.DisableEcFanControl();
         DellFanLib.SetFanLevel(FanIndex.Fan2, FanLevel.Level0);
         DellFanLib.SetFanLevel(FanIndex.Fan1, FanLevel.Level0);
     }
-    static void SetOneSlow()
+    public static void SetOneSlow()
     {
-        currentFanState = FanState.ONE_SLOW;
-
         DellFanLib.DisableEcFanControl();
         DellFanLib.SetFanLevel(FanIndex.Fan2, FanLevel.Level1);
         DellFanLib.SetFanLevel(FanIndex.Fan1, FanLevel.Level0);
     }
-    static void SetSlow()
+    public static void SetSlow()
     {
-        currentFanState = FanState.SLOW;
-
         DellFanLib.DisableEcFanControl();
         DellFanLib.SetFanLevel(FanIndex.Fan2, FanLevel.Level1);
         DellFanLib.SetFanLevel(FanIndex.Fan1, FanLevel.Level1);
     }
-    static void SetFast()
+    public static void SetFast()
     {
-        currentFanState = FanState.FAST;
-
         DellFanLib.DisableEcFanControl();
         DellFanLib.SetFanLevel(FanIndex.Fan2, FanLevel.Level2);
         DellFanLib.SetFanLevel(FanIndex.Fan1, FanLevel.Level2);
-    }
-
-    static void TimerEvent(object? source, ElapsedEventArgs e){
-
-        switch (currentFanState)
-        {
-            case FanState.OFF:
-                SetOff();
-                break;
-            case FanState.ONE_SLOW:
-                SetOneSlow();
-                break;
-            case FanState.SLOW:
-                SetSlow();
-                break;
-            case FanState.FAST:
-                SetFast();
-                break;
-        }
     }
 
     [STAThread]
@@ -76,13 +124,14 @@ static class DellFanControl
     {
         try
         {
+            DellFanLib.Initialize();
             aTimer = new System.Timers.Timer(10000);
-            aTimer.Elapsed += new ElapsedEventHandler(TimerEvent);
+            aTimer.Elapsed += new ElapsedEventHandler((object? source, ElapsedEventArgs e) =>
+            {
+                currentAppState.Act();
+            });
             aTimer.Enabled = true;
 
-            DellFanLib.Initialize();
-
-            SetOff();
             ApplicationConfiguration.Initialize();
 
             NotifyIcon notifyIcon = new()
@@ -94,14 +143,29 @@ static class DellFanControl
             ContextMenuStrip contextMenu = new();
             List<ToolStripMenuItem> menuItems = [];
 
-            AddItem(contextMenu, menuItems, "Off", SetOff, ticked: true);
-            AddItem(contextMenu, menuItems, "One slow", SetOneSlow);
-            AddItem(contextMenu, menuItems, "Slow", SetSlow);
-            AddItem(contextMenu, menuItems, "Full", SetFast);
-
-
+            AddItem(contextMenu, menuItems, "Auto", Auto, ticked: true);
             contextMenu.Items.Add(new ToolStripSeparator());
-            contextMenu.Items.Add("EXIT", null, (sender, args) => { Application.Exit(); });
+            AddItem(contextMenu, menuItems, "Off", () =>
+            {
+                currentAppState = AppState.ONE_SLOW; SetOff();
+            });
+            AddItem(contextMenu, menuItems, "One slow", () =>
+            {
+                currentAppState = AppState.ONE_SLOW; SetOneSlow();
+            });
+            AddItem(contextMenu, menuItems, "Slow", () =>
+            {
+                currentAppState = AppState.SLOW; SetSlow();
+            });
+            AddItem(contextMenu, menuItems, "Full", () =>
+            {
+                currentAppState = AppState.FAST; SetFast();
+            });
+            contextMenu.Items.Add(new ToolStripSeparator());
+            contextMenu.Items.Add("EXIT", null, (sender, args) =>
+            {
+                DellFanLib.EnableEcFanControl(); Application.Exit();
+            });
 
             notifyIcon.ContextMenuStrip = contextMenu;
 
