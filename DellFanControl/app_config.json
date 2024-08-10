@@ -1,0 +1,25 @@
+{
+    "AutoSpoolDownTime": 30,
+    "DefaultState": "Off",
+    "ChargingState": "Low",
+    "PlugedInState": "VeryLow",
+    "Docked": "Low",
+    "TemperatureRanges": [
+        {
+            "MaxTemp": 60,
+            "Speed": "Off"
+        },
+        {
+            "MaxTemp": 75,
+            "Speed": "VeryLow"
+        },
+        {
+            "MaxTemp": 86,
+            "Speed": "Low"
+        },
+        {
+            "MaxTemp": 999,
+            "Speed": "Medium"
+        }
+    ]
+}

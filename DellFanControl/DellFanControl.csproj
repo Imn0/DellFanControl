@@ -7,17 +7,17 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
   </PropertyGroup>
-    <ItemGroup>
+  <ItemGroup>
     <PackageReference Include="System.Management" Version="8.0.0" />
+    <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.3" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="DellFanLibInterop">
       <HintPath>./DellFanLibInterop/DellFanLibInterop.dll</HintPath>
     </Reference>
   </ItemGroup>
-
- 
   <ItemGroup>
     <Content Include="./DellFanLibInterop/bzh_dell_smm_io_x64.sys">
       <Link>bzh_dell_smm_io_x64.sys</Link>
@@ -35,6 +35,12 @@
       <Link>Poorly-drawn-fan.ico</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="./app_config.json">
+      <Link>app_config.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
-
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>none</DebugType>
+  </PropertyGroup>
 </Project>
