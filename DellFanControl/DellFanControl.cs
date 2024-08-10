@@ -48,7 +48,7 @@ static class AppStateActions
                 DellFanControl.SetHigh();
                 break;
             case AppState.AUTO:
-                DellFanControl.Auto();
+                DellFanControl.Auto(false);
                 break;
         }
     }
@@ -92,10 +92,11 @@ static class DellFanControl
     private static DateTime autoLastFanSpeedChangeTime = new(1970, 1, 1);
     private static FanSpeed autoLastFanSpeed = FanSpeed.OFF;
 
-    public static void Auto()
+    public static void Auto(bool manual)
     {
 
         FanSpeed desiredFanSpeed = appConfig.DefaultSpeed();
+        currentAppState = AppState.AUTO;
 
         var Charging_status = System.Windows.Forms.SystemInformation.PowerStatus.BatteryChargeStatus & BatteryChargeStatus.Charging;
         if (System.Windows.Forms.SystemInformation.PowerStatus.PowerLineStatus == PowerLineStatus.Online && Charging_status == BatteryChargeStatus.Charging)
@@ -127,7 +128,7 @@ static class DellFanControl
         }
         catch (Exception ex)
         {
-            File.WriteAllText("error.log", $"An error occurred: {ex.Message}");
+            File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "error.log"), $"An error occurred: {ex.Message}");
         }
 
 #if DEBUG
@@ -177,7 +178,7 @@ static class DellFanControl
         var timeDiffStamp = now - autoLastFanSpeedChangeTime;
         int timeDiff = timeDiffStamp.Seconds;
 
-        if (timeDiff > appConfig.AutoSpoolDownTime() || desiredFanSpeed > autoLastFanSpeed)
+        if (timeDiff > appConfig.AutoSpoolDownTime() || desiredFanSpeed > autoLastFanSpeed || manual)
         {
             autoLastFanSpeedChangeTime = now;
             autoLastFanSpeed = desiredFanSpeed;
@@ -254,19 +255,23 @@ static class DellFanControl
             ContextMenuStrip contextMenu = new();
             List<ToolStripMenuItem> menuItems = [];
 
-            AddItem(contextMenu, menuItems, "Auto", Auto, ticked: true);
+            AddItem(contextMenu, menuItems, "Auto", () => { Auto(true); }, ticked: true);
             contextMenu.Items.Add(new ToolStripSeparator());
             AddItem(contextMenu, menuItems, "Off", () =>
             {
-                currentAppState = AppState.VERY_LOW; SetOff();
+                currentAppState = AppState.OFF; SetOff();
             });
-            AddItem(contextMenu, menuItems, "One slow", () =>
+            AddItem(contextMenu, menuItems, "Very Low", () =>
             {
                 currentAppState = AppState.VERY_LOW; SetVeryLow();
             });
-            AddItem(contextMenu, menuItems, "Slow", () =>
+            AddItem(contextMenu, menuItems, "Low", () =>
             {
                 currentAppState = AppState.LOW; SetLow();
+            });
+            AddItem(contextMenu, menuItems, "Medium", () =>
+            {
+                currentAppState = AppState.MEDIUM; SetMedium();
             });
             AddItem(contextMenu, menuItems, "High", () =>
             {
@@ -289,7 +294,7 @@ static class DellFanControl
         }
         catch (Exception ex)
         {
-            File.WriteAllText("error.log", ex.ToString());
+            File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "error.log"), ex.ToString());
         }
     }
 

@@ -53,7 +53,7 @@ public class Config
 #if DEBUG
             Console.WriteLine($"{e.Message}, using default config");
 #else 
-            File.WriteAllText("error.log", $"error reading config{e.Message}");
+            File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "error.log"), $"error reading config{e.Message}");
 #endif
             jsonString = @"{
             ""DefaultState"": ""Off"",
