@@ -155,7 +155,7 @@ static class DellFanControl
                 hardware.Update();
                 foreach (var sensor in hardware.Sensors)
                 {
-                    if (sensor.SensorType == SensorType.Temperature)
+                    if (sensor.SensorType == SensorType.Temperature && !sensor.Name.Contains("istance") )
                     {
                         if (sensor.Value != null)
                         {
